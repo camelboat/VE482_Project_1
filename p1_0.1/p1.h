@@ -12,18 +12,14 @@
 #include <string.h>
 #include <fcntl.h>
 
-#include "function.h"
-
 void mumsh_loop();
 char* mumsh_read_line();
 char** mumsh_parse_args(char* line_content);
-//int* mumsh_redirection(char** line_args);
 int mumsh_execute(char** line_args);
 int mumsh_start_process(char **line_args);
 
-
-
-void mumsh_loop(){
+void mumsh_loop()
+{
     char *line_content;
     char **line_args;
     int active = 1;
@@ -31,42 +27,27 @@ void mumsh_loop(){
     while( active )
     {
         printf("mumsh $ ");
+        fflush(stdout);
         line_content = mumsh_read_line();
         line_args = mumsh_parse_args(line_content);
-        printf("%s %s %s %s", line_args[0], line_args[1], line_args[2], line_args[3]);
         if (!strcmp(line_content, "exit"))
         {
+            printf("exit");
             active = 0;
         }
         else
         {
-//            int* redirection = mumsh_redirection(line_args);
-//            printf("%d", redirection[0]);
-//            printf("%d", redirection[1]);
-//            if (redirection[0] != -1)
-//            {
-//                if (redirection[0])
-//                {
-//                    close(1);
-//                    dup2(redirection[1], 1);
-//                }
-//                free(redirection);
-                active = mumsh_execute(line_args);
-//            }
+            active = mumsh_execute(line_args);
         }
+        free(line_content);
+        free(line_args);
     }
-    free(line_content);
-    free(line_args);
-
 }
 
 char *mumsh_read_line()
 {
     size_t line_size = 1024;
     char *tmp_line = (char*)malloc(line_size);
-
-//    getline(&tmp_line, &line_size, stdin);
-//    return tmp_line;
     int tmp_char;
     int loc = 0;
     while(1)
@@ -105,40 +86,6 @@ char** mumsh_parse_args(char* line_content)
     return tmp_arg_all;
 }
 
-//int* mumsh_redirection(char** line_args)
-//{
-//    int* redirection = (int*)malloc(sizeof(int) * 2);
-//    redirection[0] = 0;
-//    redirection[1] = 0;
-////    int redirect_input = 0;
-//    int loc_tmp = 0;
-//    for (int i = 0; line_args[i] != NULL; ++i)
-//    {
-//        if (!strcmp(">", line_args[i]))
-//        {
-//            redirection[0]= 1;
-//            loc_tmp = i;
-//            break;
-//        }
-//    }
-//    line_args[loc_tmp] = NULL;
-//    if (redirection[0])
-//    {
-//        if (line_args[loc_tmp+1] == NULL)
-//        {
-//            printf("output redirection error");
-//            printf("\n");
-//            redirection[0] = -1;
-//            return redirection;
-//        }
-//        close(1);
-//        int fd = open(line_args[loc_tmp+1], O_WRONLY | O_CREAT, 0777);
-//        line_args[loc_tmp+1] = NULL;
-//        redirection[1] = dup2(1, fd);
-//    }
-//    return redirection;
-//}
-
 int mumsh_execute(char** line_args)
 {
     if (line_args[0] == NULL)
@@ -156,8 +103,14 @@ int mumsh_start_process(char** line_args)
     int pid, exitstatus;
     pid = fork();
     int loc_tmp = 0;
+    int loc_tmp_2 = 0;
     int output_flag = 0;
-    int copy_fd;
+    int input_flag = 0;
+    int output_append_flag = 0;
+    int out_fd;
+    int in_fd;
+    int out_append_fd;
+    int fd_tmp;
     if (pid == -1)
     {
         perror("fork failed");
@@ -165,14 +118,14 @@ int mumsh_start_process(char** line_args)
     }
     else if (pid == 0)
     {
+        // Check output redirection
         for (int i = 0; line_args[i] != NULL ; ++i)
         {
             if (!strcmp(line_args[i], ">"))
             {
                 loc_tmp = i;
                 output_flag = 1;
-                line_args[loc_tmp] = NULL;
-                break;
+//                line_args[loc_tmp] = NULL;
             }
         }
         if (output_flag)
@@ -183,14 +136,82 @@ int mumsh_start_process(char** line_args)
                 return 1;
             }
             close(1);
-            int fd = open(line_args[loc_tmp+1], O_WRONLY | O_CREAT, 0777);
-            copy_fd = dup2(1, fd);
+            fd_tmp = open(line_args[loc_tmp+1], O_WRONLY | O_CREAT | O_TRUNC, 0777);
+//            line_args[loc_tmp+1] = NULL;
+            for (int j = loc_tmp; line_args[j] != NULL; ++j) {
+                line_args[j] = line_args[j+2];
+            }
+            out_fd = dup2(1, fd_tmp);
         }
+
+        if (!output_flag) {
+            // Check appending output redirection
+            loc_tmp = 0;
+            for (int i = 0; line_args[i] != NULL; ++i) {
+                if (!strcmp(line_args[i], ">>")) {
+                    loc_tmp = i;
+                    output_append_flag = 1;
+                    line_args[loc_tmp] = NULL;
+                    break;
+                }
+            }
+            if (output_append_flag) {
+                if (line_args[loc_tmp + 1] == NULL) {
+                    perror("output redirection error\n");
+                    return 1;
+                }
+                close(1);
+                fd_tmp = open(line_args[loc_tmp + 1], O_WRONLY | O_CREAT | O_APPEND, 0777);
+//                line_args[loc_tmp + 1] = NULL;
+                for (int j = loc_tmp; line_args[j] != NULL; ++j) {
+                    line_args[j] = line_args[j+2];
+                }
+                out_append_fd = dup2(1, fd_tmp);
+            }
+        }
+
+        // Check input redirection
+        for (int i = 0; line_args[i] != NULL; ++i)
+        {
+            if (!strcmp(line_args[i], "<"))
+            {
+                loc_tmp_2 = i;
+                input_flag = 1;
+                line_args[loc_tmp_2] = NULL;
+                break;
+            }
+        }
+        if (input_flag)
+        {
+            if (line_args[loc_tmp_2+1] == NULL)
+            {
+                perror("input redirection error\n");
+                return 1;
+            }
+            close(0);
+            fd_tmp = open(line_args[loc_tmp_2+1], O_RDONLY);
+//            line_args[loc_tmp_2+1] = NULL;
+            for (int j = loc_tmp_2; line_args[j] != NULL; ++j) {
+                line_args[j] = line_args[j+2];
+            }
+            in_fd = dup2(0, fd_tmp);
+        }
+//        printf("%d\n%d\n%d\n", output_flag, output_append_flag, input_flag);
         execvp(line_args[0], line_args);
         if (output_flag)
         {
             close(1);
-            dup2(copy_fd, 1);
+            dup2(out_fd, 1);
+        }
+        if (input_flag)
+        {
+            close(0);
+            dup2(in_fd, 0);
+        }
+        if (output_append_flag)
+        {
+            close(1);
+            dup2(out_append_fd, 1);
         }
         perror("execvp failed");
         return 0;
