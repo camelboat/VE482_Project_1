@@ -10,26 +10,16 @@
 #include <wait.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "function.h"
 
 void mumsh_loop();
 char* mumsh_read_line();
 char** mumsh_parse_args(char* line_content);
+//int* mumsh_redirection(char** line_args);
 int mumsh_execute(char** line_args);
-int mumsh_start_process(char **line_args)；
-
-char *function_list[] = {
-        "ls",
-        "exit"
-};
-
-int get_function_num()
-{
-    return sizeof(function_list) / sizeof(char*);
-}
-
-
+int mumsh_start_process(char **line_args);
 
 
 
@@ -42,20 +32,41 @@ void mumsh_loop(){
     {
         printf("mumsh $ ");
         line_content = mumsh_read_line();
-//        printf("%s", line_content);
         line_args = mumsh_parse_args(line_content);
-        printf("%s", line_args[0]);
-        active = mumsh_execute(line_args);
-        printf("\n");
+        printf("%s %s %s %s", line_args[0], line_args[1], line_args[2], line_args[3]);
+        if (!strcmp(line_content, "exit"))
+        {
+            active = 0;
+        }
+        else
+        {
+//            int* redirection = mumsh_redirection(line_args);
+//            printf("%d", redirection[0]);
+//            printf("%d", redirection[1]);
+//            if (redirection[0] != -1)
+//            {
+//                if (redirection[0])
+//                {
+//                    close(1);
+//                    dup2(redirection[1], 1);
+//                }
+//                free(redirection);
+                active = mumsh_execute(line_args);
+//            }
+        }
     }
     free(line_content);
     free(line_args);
+
 }
 
-char* mumsh_read_line()
+char *mumsh_read_line()
 {
-    int line_size = 1024;
-    char* tmp_line = (char*)malloc(line_size);
+    size_t line_size = 1024;
+    char *tmp_line = (char*)malloc(line_size);
+
+//    getline(&tmp_line, &line_size, stdin);
+//    return tmp_line;
     int tmp_char;
     int loc = 0;
     while(1)
@@ -87,18 +98,55 @@ char** mumsh_parse_args(char* line_content)
     while (tmp_arg != NULL)
     {
         tmp_arg = strtok(NULL, delim);
+        tmp_arg_all[loc] = tmp_arg;
         loc++;
     }
     tmp_arg_all[loc] = NULL;
     return tmp_arg_all;
 }
 
+//int* mumsh_redirection(char** line_args)
+//{
+//    int* redirection = (int*)malloc(sizeof(int) * 2);
+//    redirection[0] = 0;
+//    redirection[1] = 0;
+////    int redirect_input = 0;
+//    int loc_tmp = 0;
+//    for (int i = 0; line_args[i] != NULL; ++i)
+//    {
+//        if (!strcmp(">", line_args[i]))
+//        {
+//            redirection[0]= 1;
+//            loc_tmp = i;
+//            break;
+//        }
+//    }
+//    line_args[loc_tmp] = NULL;
+//    if (redirection[0])
+//    {
+//        if (line_args[loc_tmp+1] == NULL)
+//        {
+//            printf("output redirection error");
+//            printf("\n");
+//            redirection[0] = -1;
+//            return redirection;
+//        }
+//        close(1);
+//        int fd = open(line_args[loc_tmp+1], O_WRONLY | O_CREAT, 0777);
+//        line_args[loc_tmp+1] = NULL;
+//        redirection[1] = dup2(1, fd);
+//    }
+//    return redirection;
+//}
+
 int mumsh_execute(char** line_args)
 {
     if (line_args[0] == NULL)
     {
         return 1;
-    } else{
+    }
+    else
+    {
         return mumsh_start_process(line_args);
     }
 }
@@ -107,22 +155,50 @@ int mumsh_start_process(char** line_args)
 {
     int pid, exitstatus;
     pid = fork();
-    switch(pid)
+    int loc_tmp = 0;
+    int output_flag = 0;
+    int copy_fd;
+    if (pid == -1)
     {
-        case -1:
-            perror("fork failed");
-            return 0;
-        case 0:
-            execvp(line_args[0], line_args);
-            perror("execvp failed");
-            return 0;
-        default:
-            while(wait(&exitstatus) != pid);
-            printf("")
-
+        perror("fork failed");
+        return 0;
+    }
+    else if (pid == 0)
+    {
+        for (int i = 0; line_args[i] != NULL ; ++i)
+        {
+            if (!strcmp(line_args[i], ">"))
+            {
+                loc_tmp = i;
+                output_flag = 1;
+                line_args[loc_tmp] = NULL;
+                break;
+            }
+        }
+        if (output_flag)
+        {
+            if (line_args[loc_tmp+1] == NULL)
+            {
+                perror("output redirection error\n");
+                return 1;
+            }
+            close(1);
+            int fd = open(line_args[loc_tmp+1], O_WRONLY | O_CREAT, 0777);
+            copy_fd = dup2(1, fd);
+        }
+        execvp(line_args[0], line_args);
+        if (output_flag)
+        {
+            close(1);
+            dup2(copy_fd, 1);
+        }
+        perror("execvp failed");
+        return 0;
+    } else {
+        while(wait(&exitstatus) != pid);
+        return 1;
     }
 }
-
 
 
 
