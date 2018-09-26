@@ -18,6 +18,8 @@ char** mumsh_parse_args(char* line_content);
 int mumsh_execute(char** line_args);
 int mumsh_start_process(char **line_args);
 
+//void print_test(char **line_args);
+
 void mumsh_loop()
 {
     char *line_content;
@@ -30,6 +32,7 @@ void mumsh_loop()
         fflush(stdout);
         line_content = mumsh_read_line();
         line_args = mumsh_parse_args(line_content);
+//        print_test(line_args);
         if (!strcmp(line_content, "exit"))
         {
             printf("exit");
@@ -53,16 +56,54 @@ char *mumsh_read_line()
     while(1)
     {
         tmp_char = getchar();
+//        printf("%c", tmp_char);
+//        if (tmp_char == '>' || tmp_char == '<')
+//        {
+//            tmp_line[loc] = ' ';
+//            loc++;
+//        }
         if (tmp_char == EOF || tmp_char == '\n')
         {
             tmp_line[loc] = '\0';
             return tmp_line;
         }
+        if (tmp_char == '<')
+        {
+            tmp_line[loc] = ' ';
+            loc++;
+            tmp_line[loc] = tmp_char;
+            loc++;
+            tmp_line[loc] = ' ';
+            loc++;
+        }
+        else if (tmp_char != ' ' && tmp_line[loc-1] == '>' && tmp_char != '>')
+        {
+            tmp_line[loc] = ' ';
+            loc++;
+            tmp_line[loc] = tmp_char;
+            loc++;
+//            tmp_line[loc] = ' ';
+//            loc++;
+        }
+        else if (tmp_char == '>' && tmp_line[loc-1] != '>' && tmp_line[loc-1] != ' ')
+        {
+            tmp_line[loc] = ' ';
+            loc++;
+            tmp_line[loc] = tmp_char;
+            loc++;
+        }
+        else if (tmp_line[loc-1] == '>' && tmp_char == '>')
+        {
+            tmp_line[loc] = tmp_char;
+            loc++;
+            tmp_line[loc] = ' ';
+            loc++;
+        }
         else
         {
             tmp_line[loc] = tmp_char;
+            loc++;
         }
-        loc++;
     }
 }
 
@@ -151,7 +192,7 @@ int mumsh_start_process(char** line_args)
                 if (!strcmp(line_args[i], ">>")) {
                     loc_tmp = i;
                     output_append_flag = 1;
-                    line_args[loc_tmp] = NULL;
+//                    line_args[loc_tmp] = NULL;
                     break;
                 }
             }
@@ -161,7 +202,7 @@ int mumsh_start_process(char** line_args)
                     return 1;
                 }
                 close(1);
-                fd_tmp = open(line_args[loc_tmp + 1], O_WRONLY | O_CREAT | O_APPEND, 0777);
+                fd_tmp = open(line_args[loc_tmp+1], O_WRONLY | O_CREAT | O_APPEND, 0777);
 //                line_args[loc_tmp + 1] = NULL;
                 for (int j = loc_tmp; line_args[j] != NULL; ++j) {
                     line_args[j] = line_args[j+2];
@@ -177,7 +218,7 @@ int mumsh_start_process(char** line_args)
             {
                 loc_tmp_2 = i;
                 input_flag = 1;
-                line_args[loc_tmp_2] = NULL;
+//                line_args[loc_tmp_2] = NULL;
                 break;
             }
         }
@@ -194,6 +235,7 @@ int mumsh_start_process(char** line_args)
             for (int j = loc_tmp_2; line_args[j] != NULL; ++j) {
                 line_args[j] = line_args[j+2];
             }
+//            print_test(line_args);
             in_fd = dup2(0, fd_tmp);
         }
 //        printf("%d\n%d\n%d\n", output_flag, output_append_flag, input_flag);
@@ -221,6 +263,11 @@ int mumsh_start_process(char** line_args)
     }
 }
 
-
+//void print_test(char** line_args)
+//{
+//    for (int i = 0; line_args[i] != NULL; ++i) {
+//        printf("%s ", line_args[i]);
+//    }
+//}
 
 #endif //PROJECT_P1_H
