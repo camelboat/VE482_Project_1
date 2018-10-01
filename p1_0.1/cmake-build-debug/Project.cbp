@@ -130,11 +130,15 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/camelboat/Desktop/VE482/Project_1/p1_0.1/p1.c">
+		<Unit filename="/home/camelboat/Desktop/VE482/Project_1/p1_0.1/function.c">
 			<Option target="mumsh_memory_check"/>
 			<Option target="mumsh"/>
 		</Unit>
-		<Unit filename="/home/camelboat/Desktop/VE482/Project_1/p1_0.1/p1.h">
+		<Unit filename="/home/camelboat/Desktop/VE482/Project_1/p1_0.1/function.h">
+			<Option target="mumsh_memory_check"/>
+			<Option target="mumsh"/>
+		</Unit>
+		<Unit filename="/home/camelboat/Desktop/VE482/Project_1/p1_0.1/p1.c">
 			<Option target="mumsh_memory_check"/>
 			<Option target="mumsh"/>
 		</Unit>

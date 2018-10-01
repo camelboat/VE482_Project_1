@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.7)
 
 set(CMAKE_C_STANDARD 11)
-set(SOURCE_FILES p1.c p1.h)
+set(SOURCE_FILES p1.c function.c)
 
 #set(CMAKE_C_FLAGS "-std=c11 -O2 -Wall -Wextra -Werror -pedantic -Wno-unused-result")
 add_executable(mumsh ${SOURCE_FILES})

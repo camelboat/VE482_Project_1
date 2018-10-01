@@ -1,4 +1,4 @@
-#include "p1.h"
+#include "function.h"
 
 int main()
 {
