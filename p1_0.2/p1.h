@@ -31,6 +31,7 @@ void mumsh_loop()
         printf("mumsh $ ");
         fflush(stdout);
         line_content = mumsh_read_line();
+
         line_args = mumsh_parse_args(line_content);
 //        print_test(line_args);
         if (!strcmp(line_content, "exit"))
