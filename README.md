@@ -1,4 +1,4 @@
-#VE482_Project_1_mumsh
+# VE482_Project_1_mumsh
 
 ## Goals of the project
 
